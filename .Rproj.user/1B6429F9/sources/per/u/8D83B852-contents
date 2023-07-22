@@ -1,0 +1,34 @@
+dbinom(2, 5, 0.3)
+pbinom(2, 5, 0.3, lower.tail = TRUE)
+qbinom(0.5, 5, 0.3, lower.tail = TRUE)
+rbinom(2, 5, 0.3)
+pbinom(0, 5, 0.8)
+
+
+rbinom(10, 5, 0.3)
+
+2 <= 0:5
+
+#poisson
+
+
+dpois(4, 2)
+ppois(4, 2, lower.tail = TRUE)
+qpois(4, 2, lower.tail = TRUE)
+
+rpois(10, 5)
+
+
+x <- 0:10
+
+y <- dpois(x, 5)
+
+dados <-data.frame(x, y)
+
+print(dados)
+
+
+
+e1071
+
+kurtoses

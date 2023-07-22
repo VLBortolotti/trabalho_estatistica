@@ -1,0 +1,207 @@
+# Carrega as bibliotecas necessárias
+library(readxl)
+library(dplyr)
+library(knitr)
+library(ggplot2)
+# Caminho do arquivo
+caminho_arquivo <- "Tabela_DB.xlsx"
+
+# Carrega os dados do arquivo Excel para o objeto 'dados'
+dados <- read_excel(caminho_arquivo)
+
+# Verifica se a coluna "Nota" contém apenas valores numéricos
+non_numeric_indices <- !grepl("^\\d+(\\.\\d+)?$", dados$Nota)
+
+# Exibe os valores não numéricos na coluna "Nota" para identificação
+
+# Substitui valores não numéricos na coluna "Nota" por NA
+dados$Nota[non_numeric_indices] <- NA
+
+# Converte a coluna "Nota" para numérica
+dados$Nota <- as.numeric(dados$Nota)
+
+notas_grupo_x <- filter(dados, Grupo == "X")$Nota
+
+notas_grupo_y <- filter(dados, Grupo == "Y")$Nota
+notas_grupo_z <- filter(dados, Grupo == "Z")$Nota
+
+
+# Cria a tabela com a quantidade de notas e NA's em cada grupo
+tabela_quantidade_notas <- table(dados$Grupo)
+contador_nas <- table(dados$Grupo, is.na(dados$Nota))
+
+# Adiciona um cabeçalho descritivo para a tabela
+nomes_grupos <- c("Grupo X", "Grupo Y", "Grupo Z")
+tabela_descritiva <- data.frame(Grupos = nomes_grupos,
+                                Quantidade_de_Notas = as.vector(tabela_quantidade_notas),
+                                Quantidade_de_NAs = as.vector(contador_nas[, "TRUE"]))
+
+# Calcula o 1º, 2º e 3º quartil das notas
+quartis <- dados %>%
+  summarize(
+    `1º Quartil` = quantile(Nota, probs = 0.25, na.rm = TRUE, type = 5),
+    `2º Quartil (Mediana)` = median(Nota, na.rm = TRUE),
+    `3º Quartil` = quantile(Nota, probs = 0.75, na.rm = TRUE, type = 5)
+  )
+
+# Calcula a média, mínimo e máximo das notas
+estatisticas_notas <- dados %>%
+  summarize(
+    Média = mean(Nota, na.rm = TRUE),
+    Mínimo = min(Nota, na.rm = TRUE),
+    Máximo = max(Nota, na.rm = TRUE)
+  )
+
+# Calcula a quantidade de NA's presentes na tabela
+quantidade_nas <- dados %>%
+  summarize(NA_presentes = sum(is.na(Nota)))
+
+# Combina os resultados em uma tabela única
+tabela_analise_notas <- cbind(quartis, estatisticas_notas, quantidade_nas)
+
+# Agrupa os dados por categoria da variável "Grupo"
+dados_por_grupo <- dados %>%
+  group_by(Grupo)
+
+# Calcula a média, mediana, mínimo, máximo e a quantidade de NA's para cada grupo
+tabela_analise_por_grupo <- dados_por_grupo %>%
+  summarize(
+    Média = mean(Nota, na.rm = TRUE),
+    Mediana = median(Nota, na.rm = TRUE),
+    Mínimo = min(Nota, na.rm = TRUE),
+    Máximo = max(Nota, na.rm = TRUE),
+    NA_presentes = sum(is.na(Nota))
+  )
+
+
+
+# Calcula o 1º, 2º e 3º quartil das notas
+quartis <- dados %>%
+  summarize(
+    `1º Quartil` = quantile(Nota, probs = 0.25, na.rm = TRUE, type = 5),
+    `2º Quartil (Mediana)` = median(Nota, na.rm = TRUE),
+    `3º Quartil` = quantile(Nota, probs = 0.75, na.rm = TRUE, type = 5)
+  )
+
+
+# *********** FILTROS PARA O CALCULO DAS PORCENTAGENS DE CADA GRUPO *********************
+# Filtra as notas do grupo X até o valor do quartil 1
+notas_filtradas_grupo_x <- filter(dados, Grupo == "X", Nota >= 0, Nota <= quartis$`1º Quartil`)$Nota
+# Filtra as notas do grupo Y até o valor do quartil 1
+notas_filtradas_grupo_y <- filter(dados, Grupo == "Y", Nota >= 0, Nota <= quartis$`1º Quartil`)$Nota
+# Filtra as notas do grupo Z até o valor do quartil 1
+notas_filtradas_grupo_z <- filter(dados, Grupo == "Z", Nota >= 0, Nota <= quartis$`1º Quartil`)$Nota
+notas_filtradas_grupo_xx <- filter(dados, Grupo == "X", Nota > quartis$`1º Quartil`, Nota <= quartis$`2º Quartil (Mediana)`)$Nota
+notas_filtradas_grupo_yy <- filter(dados, Grupo == "Y", Nota > quartis$`1º Quartil`, Nota <= quartis$`2º Quartil (Mediana)`)$Nota
+notas_filtradas_grupo_zz <- filter(dados, Grupo == "Z", Nota > quartis$`1º Quartil`, Nota <= quartis$`2º Quartil (Mediana)`)$Nota
+notas_filtradas_grupo_xxx <- filter(dados, Grupo == "X", Nota > quartis$`2º Quartil (Mediana)` , Nota <= quartis$`3º Quartil`)$Nota
+notas_filtradas_grupo_yyy <- filter(dados, Grupo == "Y", Nota > quartis$`2º Quartil (Mediana)`, Nota <= quartis$`3º Quartil`)$Nota
+notas_filtradas_grupo_zzz <- filter(dados, Grupo == "Z", Nota > quartis$`2º Quartil (Mediana)`, Nota <= quartis$`3º Quartil`)$Nota
+notas_filtradas_grupo_xxxx <- filter(dados, Grupo == "X", Nota > quartis$`3º Quartil`, Nota <= 10.00)$Nota
+notas_filtradas_grupo_yyyy <- filter(dados, Grupo == "Y", Nota > quartis$`3º Quartil`, Nota <= 10.00)$Nota
+notas_filtradas_grupo_zzzz <- filter(dados, Grupo == "Z", Nota > quartis$`3º Quartil`, Nota <= 10.00)$Nota
+
+# *********** FILTROS PARA O CALCULO DAS PORCENTAGENS DE CADA GRUPO *********************
+
+# Calcula os quartis (1º, 2º - mediana e 3º) para todas as notas
+tabela_quartis_geral <- dados %>%
+  summarize(
+    Grupo = "Quartis Gerais",
+    `1º Quartil` = quantile(Nota, probs = 0.25, na.rm = TRUE, type = 5),
+    `2º Quartil (Mediana)` = median(Nota, na.rm = TRUE),
+    `3º Quartil` = quantile(Nota, probs = 0.75, na.rm = TRUE, type = 5)
+  )
+
+notas_grupo_x <- filter(dados, Grupo == "X")$Nota
+notas_grupo_y <- filter(dados, Grupo == "Y")$Nota
+notas_grupo_z <- filter(dados, Grupo == "Z")$Nota
+
+# Calcula a porcentagem de valores filtrados para o grupo X
+porcentagem_filtrada_grupo_x <- round(length(notas_filtradas_grupo_x) / length(notas_grupo_x) * 100, 2)
+
+# Calcula a porcentagem de valores filtrados para o grupo Y
+porcentagem_filtrada_grupo_y <- round(length(notas_filtradas_grupo_y) / length(notas_grupo_y) * 100, 2)
+
+# Calcula a porcentagem de valores filtrados para o grupo Z
+porcentagem_filtrada_grupo_z <- round(length(notas_filtradas_grupo_z) / length(notas_grupo_z) * 100, 2)
+
+# Calcula a porcentagem de valores filtrados para o grupo X
+
+porcentagem_filtrada_grupo_xx <-round(length(notas_filtradas_grupo_xx) / length(notas_grupo_x) * 100,2)
+
+# Calcula a porcentagem de valores filtrados para o grupo Y
+porcentagem_filtrada_grupo_yy <- round(length(notas_filtradas_grupo_yy) / length(notas_grupo_y) * 100,2)
+
+# Calcula a porcentagem de valores filtrados para o grupo Z
+porcentagem_filtrada_grupo_zz <- round(length(notas_filtradas_grupo_zz) / length(notas_grupo_z) * 100, 2)
+
+# Calcula a porcentagem de valores filtrados para o grupo X
+porcentagem_filtrada_grupo_xxx <- round(length(notas_filtradas_grupo_xxx) / length(notas_grupo_x) * 100, 2)
+
+# Calcula a porcentagem de valores filtrados para o grupo Y
+porcentagem_filtrada_grupo_yyy <- round(length(notas_filtradas_grupo_yyy) / length(notas_grupo_y) * 100, 2)
+
+# Calcula a porcentagem de valores filtrados para o grupo Z
+porcentagem_filtrada_grupo_zzz <- round(length(notas_filtradas_grupo_zzz) / length(notas_grupo_z) * 100, 2)
+
+# Calcula a porcentagem de valores filtrados para o grupo X
+porcentagem_filtrada_grupo_xxxx<- round(length(notas_filtradas_grupo_xxxx) / length(notas_grupo_x) * 100, 2)
+
+# Calcula a porcentagem de valores filtrados para o grupo Y
+porcentagem_filtrada_grupo_yyyy<- round(length(notas_filtradas_grupo_yyyy) / length(notas_grupo_y) * 100, 2)
+
+# Calcula a porcentagem de valores filtrados para o grupo Z
+porcentagem_filtrada_grupo_zzzz<- round(length(notas_filtradas_grupo_zzzz) / length(notas_grupo_z) * 100, 2)
+
+
+
+# Cria a tabela com as notas do "Grupo X" e os quartis gerais
+tabela_notas_e_quartis <- data.frame(
+  Grupo = c("Quartis Gerais", "Grupo X", "Grupo Y", "Grupo Z", "Conceito"),
+  `1º Quartil` = c(tabela_quartis_geral$`1º Quartil`, porcentagem_filtrada_grupo_x, porcentagem_filtrada_grupo_y, porcentagem_filtrada_grupo_z, "Ruim"),
+  `2º Quartil (Mediana)` = c(tabela_quartis_geral$`2º Quartil (Mediana)`, porcentagem_filtrada_grupo_xx, porcentagem_filtrada_grupo_yy, porcentagem_filtrada_grupo_zz, "Regular"),
+  `3º Quartil` = c(tabela_quartis_geral$`3º Quartil`, porcentagem_filtrada_grupo_xxx, porcentagem_filtrada_grupo_yyy, porcentagem_filtrada_grupo_zzz, "Bom"),
+  `Superior` = c("<= 10,00", porcentagem_filtrada_grupo_xxxx, porcentagem_filtrada_grupo_yyyy, porcentagem_filtrada_grupo_zzzz, "ótimo")
+)
+
+
+
+# Exibe a tabela formatada com os dados dos grupos
+knitr::kable(tabela_descritiva, caption = "Quantidade de Notas e NA's em cada Grupo")
+
+# Exibe a tabela com os resultados
+knitr::kable(tabela_analise_notas, caption = "Análise das Notas")
+
+
+# Exibe a tabela com os resultados
+knitr::kable(tabela_analise_por_grupo, caption = "Análise da Variável Nota por Categoria da Variável Grupo")
+
+# Exibe a tabela com as notas do "Grupo X" e os quartis gerais
+knitr::kable(tabela_notas_e_quartis, caption = "Notas dos alunos em % com relação as notas")
+
+# Remova as linhas que contêm valores não finitos na coluna "Nota"
+dados_completos <- dados %>%
+  filter(!is.na(Nota) & is.finite(Nota))
+
+# Cria o boxplot das notas por grupo usando os dados limpos
+boxplot_notas_por_grupo <- ggplot(dados_completos, aes(x = Grupo, y = Nota, fill = Grupo)) +
+  geom_boxplot() +
+  labs(title = "Distribuição das Notas por Grupo",
+       x = "Grupo",
+       y = "Nota") +
+  theme_minimal()
+
+# Exibe o boxplot 
+print(boxplot_notas_por_grupo)
+
+# Cria o histograma das notas por grupo
+histograma_notas_por_grupo <- ggplot(dados_completos, aes(x = Nota, fill = Grupo)) +
+  geom_histogram(position = "identity", alpha = 0.7, bins = 20) +
+  labs(title = "Distribuição das Notas por Grupo (Histograma)",
+       x = "Nota",
+       y = "Contagem") +
+  theme_minimal()
+
+# Exibe o histograma
+print(histograma_notas_por_grupo)
+
